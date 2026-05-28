@@ -37,7 +37,8 @@ st.markdown(
     """
     <style>
         .block-container {
-            padding-top: 0.25rem;
+            padding-top: 0rem;
+            padding-bottom: 0rem;
             padding-left: 0.75rem;
             padding-right: 0.75rem;
             max-width: none;
@@ -55,7 +56,7 @@ st.markdown(
         }
         .questionnaire-anchor {
             border-top: 1px solid #e6edf1;
-            margin-top: 1.2rem;
+            margin-top: 0rem;
             padding-top: 1.3rem;
             background: #ffffff;
             max-width: 1240px;
@@ -788,7 +789,8 @@ def render_unified_earth_hero(project_markers):
             #earth-root {
                 position: relative;
                 width: 100%;
-                height: 700px;
+                height: 100vh;
+                min-height: 760px;
                 box-sizing: border-box;
                 border-radius: 8px;
                 overflow: hidden;
@@ -909,7 +911,8 @@ def render_unified_earth_hero(project_markers):
             }
             @media (max-width: 680px) {
                 #earth-root {
-                    height: 700px;
+                    height: 100vh;
+                    min-height: 760px;
                 }
                 .hero-shade {
                     background:
@@ -947,7 +950,8 @@ def render_unified_earth_hero(project_markers):
         globe_html
         .replace("__PROJECT_MARKERS__", marker_payload)
         .replace("__PROJECT_COUNT__", str(len(project_markers))),
-        height=700,
+        height=760,
+        scrolling=False,
     )
 
 
