@@ -1206,6 +1206,8 @@ if DEV_MODE:
 
 if "app_3_page" not in st.session_state:
     st.session_state["app_3_page"] = "questionnaire"
+if "questionnaire_answers" not in st.session_state:
+    st.session_state["questionnaire_answers"] = {}
 
 if st.session_state["app_3_page"] == "questionnaire":
     st.markdown('<div class="main-title">Nature Intelligence Platform</div>', unsafe_allow_html=True)
@@ -1217,12 +1219,17 @@ if st.session_state["app_3_page"] == "questionnaire":
 
     company_profile = render_questionnaire()
     if company_profile is not None:
+        st.session_state["questionnaire_answers"] = company_profile.copy()
         st.session_state["company_profile"] = company_profile
         st.session_state["app_3_page"] = "results"
         st.rerun()
 
 else:
-    company_profile = st.session_state.get("company_profile", {})
+    company_profile = st.session_state.get(
+        "questionnaire_answers",
+        st.session_state.get("company_profile", {}),
+    )
+    st.session_state["company_profile"] = company_profile
 
     st.markdown('<div class="main-title">Nature Intelligence Platform</div>', unsafe_allow_html=True)
     st.markdown(
