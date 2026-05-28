@@ -562,6 +562,7 @@ def render_unified_earth_hero(project_markers):
             const pressure = document.getElementById("info-pressure");
             const nbs = document.getElementById("info-nbs");
             const AUTO_ROTATION_SPEED = 0.00115;
+            const AUTO_ROTATION_RESUME_DELAY = 3000;
 
             const scene = new THREE.Scene();
             const camera = new THREE.PerspectiveCamera(42, root.clientWidth / root.clientHeight, 0.1, 100);
@@ -680,6 +681,43 @@ def render_unified_earth_hero(project_markers):
             let lastY = 0;
             let velocityX = AUTO_ROTATION_SPEED;
             let velocityY = 0;
+            let autoRotateEnabled = true;
+            let resumeAutoRotateTimer = null;
+            let dragDistance = 0;
+
+            function pauseAutoRotate() {
+                autoRotateEnabled = false;
+                velocityX = 0;
+                velocityY = 0;
+                if (resumeAutoRotateTimer) {
+                    window.clearTimeout(resumeAutoRotateTimer);
+                    resumeAutoRotateTimer = null;
+                }
+            }
+
+            function scheduleAutoRotateResume() {
+                if (resumeAutoRotateTimer) {
+                    window.clearTimeout(resumeAutoRotateTimer);
+                }
+                resumeAutoRotateTimer = window.setTimeout(() => {
+                    autoRotateEnabled = true;
+                    velocityX = AUTO_ROTATION_SPEED;
+                    velocityY = 0;
+                    resumeAutoRotateTimer = null;
+                }, AUTO_ROTATION_RESUME_DELAY);
+            }
+
+            function finishDrag(event) {
+                if (!isDragging) {
+                    return;
+                }
+                isDragging = false;
+                canvas.style.cursor = "grab";
+                if (event && canvas.hasPointerCapture && canvas.hasPointerCapture(event.pointerId)) {
+                    canvas.releasePointerCapture(event.pointerId);
+                }
+                scheduleAutoRotateResume();
+            }
 
             function updatePointer(event) {
                 const rect = canvas.getBoundingClientRect();
@@ -688,21 +726,25 @@ def render_unified_earth_hero(project_markers):
             }
 
             canvas.addEventListener("pointerdown", (event) => {
+                event.preventDefault();
+                pauseAutoRotate();
                 isDragging = true;
+                dragDistance = 0;
                 lastX = event.clientX;
                 lastY = event.clientY;
+                canvas.style.cursor = "grabbing";
                 canvas.setPointerCapture(event.pointerId);
             });
 
             canvas.addEventListener("pointermove", (event) => {
                 if (isDragging) {
+                    event.preventDefault();
                     const dx = event.clientX - lastX;
                     const dy = event.clientY - lastY;
                     group.rotation.y += dx * 0.006;
                     group.rotation.x += dy * 0.004;
                     group.rotation.x = Math.max(-0.72, Math.min(0.72, group.rotation.x));
-                    velocityX = dx * 0.00035;
-                    velocityY = dy * 0.00022;
+                    dragDistance += Math.abs(dx) + Math.abs(dy);
                     lastX = event.clientX;
                     lastY = event.clientY;
                     return;
@@ -719,11 +761,20 @@ def render_unified_earth_hero(project_markers):
                 }
             });
 
-            canvas.addEventListener("pointerup", () => {
-                isDragging = false;
+            canvas.addEventListener("pointerup", finishDrag);
+            canvas.addEventListener("pointercancel", finishDrag);
+            canvas.addEventListener("lostpointercapture", finishDrag);
+            canvas.addEventListener("pointerleave", (event) => {
+                if (isDragging) {
+                    finishDrag(event);
+                }
             });
 
             canvas.addEventListener("click", (event) => {
+                if (dragDistance > 8) {
+                    dragDistance = 0;
+                    return;
+                }
                 updatePointer(event);
                 raycaster.setFromCamera(pointer, camera);
                 const hits = raycaster.intersectObjects(markerObjects, false);
@@ -760,7 +811,7 @@ def render_unified_earth_hero(project_markers):
             function animate() {
                 requestAnimationFrame(animate);
                 tick += 0.01;
-                if (!isDragging) {
+                if (!isDragging && autoRotateEnabled) {
                     group.rotation.y += velocityX || AUTO_ROTATION_SPEED;
                     group.rotation.x += velocityY;
                     velocityX = velocityX * 0.99 + AUTO_ROTATION_SPEED * 0.01;
@@ -809,6 +860,9 @@ def render_unified_earth_hero(project_markers):
                 height: 100%;
                 display: block;
                 cursor: grab;
+                pointer-events: auto;
+                touch-action: none;
+                user-select: none;
             }
             .hero-shade {
                 position: absolute;
